@@ -2001,7 +2001,10 @@ impl Bank {
     }
 
     pub fn is_frozen(&self) -> bool {
-        *self.hash.read().unwrap() != Hash::default()
+        info!("checking is_frozen");
+        let x = *self.hash.read().unwrap() != Hash::default();
+        info!("is_frozen: {}", x);
+        x
     }
 
     pub fn freeze_started(&self) -> bool {
@@ -2542,6 +2545,7 @@ impl Bank {
     /// Note that the account state is *not* allowed to change by rehashing.
     /// If modifying accounts in ledger-tool is needed, create a new bank.
     pub fn rehash(&self) {
+        info!("Rehash bank at slot {}", self.slot());
         let get_delta_hash = || {
             (!self
                 .feature_set
@@ -2556,6 +2560,7 @@ impl Bank {
         };
 
         let mut hash = self.hash.write().unwrap();
+        info!("Acquired hash write lock for rehashing bank at slot {}", self.slot());
         let curr_accounts_delta_hash = get_delta_hash();
         let new = self.hash_internal_state();
         if let Some(curr_accounts_delta_hash) = curr_accounts_delta_hash {
@@ -2569,9 +2574,11 @@ impl Bank {
             warn!("Updating bank hash to {new}");
             *hash = new;
         }
+        info!("Rehashed bank at slot {}", self.slot());
     }
 
     pub fn freeze(&self) {
+        info!("Freezing bank at slot {}", self.slot());
         // This lock prevents any new commits from BankingStage
         // `Consumer::execute_and_commit_transactions_locked()` from
         // coming in after the last tick is observed. This is because in
@@ -2584,6 +2591,7 @@ impl Bank {
         // record and commit are finished, those transactions will be
         // committed before this write lock can be obtained here.
         let mut hash = self.hash.write().unwrap();
+        info!("Acquired hash write lock for rehashing bank at slot {}", self.slot());
         if *hash == Hash::default() {
             // finish up any deferred changes to account state
             self.collect_rent_eagerly();
@@ -2630,6 +2638,7 @@ impl Bank {
             *hash = self.hash_internal_state();
             self.rc.accounts.accounts_db.mark_slot_frozen(self.slot());
         }
+        info!("Froze bank at slot {}", self.slot());
     }
 
     // dangerous; don't use this; this is only needed for ledger-tool's special command

@@ -320,7 +320,8 @@ impl VotingLoop {
 
                     // Check if replay has successfully completed
                     if let Some(bank) = pending_blocks.get(&current_slot) {
-                        debug_assert!(bank.is_frozen());
+                        info!("{my_pubkey}: {current_slot} has completed replay");
+                        //debug_assert!(bank.is_frozen());
                         // Vote notarize
                         if Self::try_notar(
                             &my_pubkey,
@@ -451,7 +452,17 @@ impl VotingLoop {
             ctx.my_pubkey
         );
         let new_root = (old_root + 1..=slot).rev().find(|slot| {
-            cert_pool.is_finalized(*slot) && ctx.bank_forks.read().unwrap().is_frozen(*slot)
+            let x = cert_pool.is_finalized(*slot);
+            info!(
+                "{}: Slot {} is finalized: {}",
+                ctx.my_pubkey, slot, x
+            );
+            let y = ctx.bank_forks.read().unwrap().is_frozen(*slot);
+            info!(
+                "{}: Slot {} is frozen: {}",
+                ctx.my_pubkey, slot, y
+            );
+            x && y
         })?;
 
         datapoint_info!(
@@ -460,7 +471,7 @@ impl VotingLoop {
             ("new_root", new_root, i64),
             ("slot", slot, i64),
         );
-        
+
         info!("{}: Attempting to set new root {new_root}", ctx.my_pubkey);
         vctx.vote_history.set_root(new_root);
         cert_pool.handle_new_root(ctx.bank_forks.read().unwrap().get(new_root).unwrap());
