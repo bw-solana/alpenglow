@@ -807,8 +807,8 @@ impl VotingLoop {
         true
     }
 
-    /// Refresh the highest recent finalization certificate
-    /// For each slot past this, refresh our votes
+    /// Refresh the highest recent finalization certificate.
+    /// For each slot past this, refresh our votes.
     fn refresh_votes_and_cert(
         my_pubkey: &Pubkey,
         slot: Slot,
@@ -816,13 +816,11 @@ impl VotingLoop {
         cert_pool: &mut CertificatePool<LegacyVoteCertificate>,
         voting_context: &mut VotingContext,
     ) {
-        // TODO: handle slow finalization after cert pool refactor
-        let highest_finalization_slot = if let Some(block) = cert_pool.highest_fast_finalized() {
-            // TODO: rebroadcast cert for block once we have BLS
-            block.0
-        } else {
-            0
-        };
+        // TODO: rebroadcast cert for block once we have BLS
+        let highest_finalization_slot = cert_pool.highest_finalized_slot();
+        info!(
+            "{my_pubkey}: Refreshing votes and certs from {highest_finalization_slot} to {slot}"
+        );
         for s in highest_finalization_slot..=slot {
             for vote in voting_context.vote_history.votes_cast(s) {
                 info!("{my_pubkey}: Refreshing vote {vote:?}");
