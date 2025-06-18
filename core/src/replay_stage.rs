@@ -4401,6 +4401,7 @@ impl ReplayStage {
         drop_bank_sender: &Sender<Vec<BankWithScheduler>>,
         tbft_structs: Option<&mut TowerBFTStructures>,
     ) -> Result<(), SetRootError> {
+        info!("{new_root} handle_new_root 1");
         let mut bank_fork_lock_acquire_fails = 0; 
         let bank_forks_wl = loop {
             match bank_forks.try_write() {
@@ -4416,6 +4417,7 @@ impl ReplayStage {
                 }
             }
         };
+        info!("{new_root} handle_new_root 2");
 
         bank_forks_wl.prune_program_cache(new_root);
         let removed_banks = bank_forks.write().unwrap().set_root(
@@ -4424,9 +4426,13 @@ impl ReplayStage {
             highest_super_majority_root,
         )?;
 
+        info!("{new_root} handle_new_root 3");
+
         drop_bank_sender
             .send(removed_banks)
             .unwrap_or_else(|err| warn!("bank drop failed: {:?}", err));
+
+        info!("{new_root} handle_new_root 4");
 
         let new_root_bank = &bank_forks_wl[new_root];
         if !*has_new_vote_been_rooted {
@@ -4440,7 +4446,9 @@ impl ReplayStage {
                 std::mem::take(voted_signatures);
             }
         }
+        info!("{new_root} handle_new_root 5");
         progress.handle_new_root(&bank_forks_wl);
+        info!("{new_root} handle_new_root 6");
         if let Some(TowerBFTStructures {
             heaviest_subtree_fork_choice,
             duplicate_slots_tracker,
@@ -4461,6 +4469,7 @@ impl ReplayStage {
             *epoch_slots_frozen_slots = epoch_slots_frozen_slots.split_off(&new_root);
             // epoch_slots_frozen_slots now only contains entries >= `new_root`
         }
+        info!("{new_root} handle_new_root 7");
         Ok(())
     }
 
