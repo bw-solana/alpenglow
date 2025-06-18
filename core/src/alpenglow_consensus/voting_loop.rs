@@ -237,6 +237,9 @@ impl VotingLoop {
 
         // TODO(ashwin): Start loop once migration is complete current_slot from vote history
         loop {
+            info!(
+                "{my_pubkey}: voting loop Current slot: {current_slot}"
+            );
             let leader_end_slot = last_of_consecutive_leader_slots(current_slot);
 
             let Some(leader_pubkey) = leader_schedule_cache
@@ -497,10 +500,20 @@ impl VotingLoop {
             ctx.my_pubkey
         );
         let bank_fork_rl = ctx.bank_forks.read().unwrap();
-        let new_root = (old_root + 1..=slot).rev().find(|slot| {
+        let new_root = match (old_root + 1..=slot).rev().find(|slot| {
             info!("{}: Checking slot {slot} for finalization certificate", ctx.my_pubkey);
-            cert_pool.is_finalized(*slot) && bank_fork_rl.is_frozen(*slot)
-        })?;
+            let x = cert_pool.is_finalized(*slot);
+            info!("{}: Slot {slot} is finalized: {}", ctx.my_pubkey, x);
+            let y = bank_fork_rl.is_frozen(*slot);
+            info!("{}: Slot {slot} is frozen: {}", ctx.my_pubkey, y);
+            x && y
+        }) {
+            Some(slot) => slot,
+            None => {
+                info!("{}: No finalization certificate found between {old_root} and {slot}", ctx.my_pubkey);
+                return None;
+            }
+        };
         datapoint_info!(
             "alpenglow_consensus_set_root",
             ("slot", new_root, i64),
