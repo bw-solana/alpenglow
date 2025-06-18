@@ -4313,11 +4313,27 @@ impl ReplayStage {
     ) -> Result<(), SetRootError> {
         // get the root bank before squash
         info!("{} check_and_handle_new_root: {} -> {}", my_pubkey, parent_slot, new_root);
-        let root_bank = bank_forks
-            .read()
-            .unwrap()
+        let mut bank_fork_lock_acquire_fails = 0;
+        let bank_fork_rl = loop {
+            match bank_forks.try_read() {
+                Ok(bank_fork_rl) => break bank_fork_rl,
+                Err(_) => {
+                    bank_fork_lock_acquire_fails += 1;
+                    if bank_fork_lock_acquire_fails % 50 == 0 {
+                        error!(
+                            "{}: Failed to acquire bank_forks read lock after {bank_fork_lock_acquire_fails} attempts in a row!",
+                            my_pubkey
+                        );
+                    }
+                    // If we cannot acquire the lock, wait a bit and try again
+                    thread::sleep(Duration::from_micros(30));
+                }
+            }
+        };
+        let root_bank = bank_fork_rl
             .get(new_root)
             .expect("Root bank doesn't exist");
+        drop(bank_fork_rl);
         info!("{} got root bank: {}", my_pubkey, root_bank.slot());
         let mut rooted_banks = root_bank.parents();
         let oldest_parent = rooted_banks.last().map(|last| last.parent_slot());
@@ -4385,7 +4401,23 @@ impl ReplayStage {
         drop_bank_sender: &Sender<Vec<BankWithScheduler>>,
         tbft_structs: Option<&mut TowerBFTStructures>,
     ) -> Result<(), SetRootError> {
-        bank_forks.read().unwrap().prune_program_cache(new_root);
+        let mut bank_fork_lock_acquire_fails = 0; 
+        let bank_forks_wl = loop {
+            match bank_forks.try_write() {
+                Ok(bank_forks_wl) => break bank_forks_wl,
+                Err(_) => {
+                    bank_fork_lock_acquire_fails += 1;
+                    if bank_fork_lock_acquire_fails % 50 == 0 {
+                        error!(
+                            "Failed to acquire bank_forks read lock after {bank_fork_lock_acquire_fails} attempts in a row!"
+                        );
+                    }
+                    std::thread::sleep(Duration::from_micros(10));
+                }
+            }
+        };
+
+        bank_forks_wl.prune_program_cache(new_root);
         let removed_banks = bank_forks.write().unwrap().set_root(
             new_root,
             accounts_background_request_sender,
@@ -4396,10 +4428,7 @@ impl ReplayStage {
             .send(removed_banks)
             .unwrap_or_else(|err| warn!("bank drop failed: {:?}", err));
 
-        // Dropping the bank_forks write lock and reacquiring as a read lock is
-        // safe because updates to bank_forks are only made by a single thread.
-        let r_bank_forks = bank_forks.read().unwrap();
-        let new_root_bank = &r_bank_forks[new_root];
+        let new_root_bank = &bank_forks_wl[new_root];
         if !*has_new_vote_been_rooted {
             for signature in voted_signatures.iter() {
                 if new_root_bank.get_signature_status(signature).is_some() {
@@ -4411,7 +4440,7 @@ impl ReplayStage {
                 std::mem::take(voted_signatures);
             }
         }
-        progress.handle_new_root(&r_bank_forks);
+        progress.handle_new_root(&bank_forks_wl);
         if let Some(TowerBFTStructures {
             heaviest_subtree_fork_choice,
             duplicate_slots_tracker,
@@ -4421,7 +4450,7 @@ impl ReplayStage {
             ..
         }) = tbft_structs
         {
-            heaviest_subtree_fork_choice.set_tree_root((new_root, r_bank_forks.root_bank().hash()));
+            heaviest_subtree_fork_choice.set_tree_root((new_root, bank_forks_wl.root_bank().hash()));
             *duplicate_slots_tracker = duplicate_slots_tracker.split_off(&new_root);
             // duplicate_slots_tracker now only contains entries >= `new_root`
 

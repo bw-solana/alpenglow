@@ -322,9 +322,9 @@ impl VotingLoop {
                     // Check if replay has successfully completed
                     let Ok(bank_fork_rl) = bank_forks.try_read() else {
                         bank_fork_lock_acquire_fails += 1;
-                        if bank_fork_lock_acquire_fails > 50 {
+                        if bank_fork_lock_acquire_fails % 50 == 0 {
                             error!(
-                                "{my_pubkey}: Failed to acquire bank_forks read lock after 50 attempts in a row!"
+                                "{my_pubkey}: Failed to acquire bank_forks read lock after {bank_fork_lock_acquire_fails} attempts in a row!"
                             );
                         }
                         continue;
@@ -521,7 +521,7 @@ impl VotingLoop {
                 Ok(bank_fork_rl) => break bank_fork_rl,
                 Err(_) => {
                     bank_fork_lock_acquire_fails += 1;
-                    if bank_fork_lock_acquire_fails > 50 {
+                    if bank_fork_lock_acquire_fails % 50 == 0 {
                         error!(
                             "{}: Failed to acquire bank_forks read lock after {bank_fork_lock_acquire_fails} attempts in a row!",
                             ctx.my_pubkey

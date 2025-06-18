@@ -2008,7 +2008,7 @@ impl Bank {
                 Ok(guard) => break guard,
                 Err(_) => {
                     hash_lock_acquire_fails += 1;
-                    if hash_lock_acquire_fails > 100 {
+                    if hash_lock_acquire_fails % 50 == 0 {
                         error!(
                             "Failed to acquire hash read lock after {hash_lock_acquire_fails} attempts in a row!"
                         );
