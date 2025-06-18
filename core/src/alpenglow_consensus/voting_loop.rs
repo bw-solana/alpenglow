@@ -496,12 +496,22 @@ impl VotingLoop {
             "{}: Checking for finalization certificates between {old_root} and {slot}",
             ctx.my_pubkey
         );
+        let bank_fork_rl = ctx.bank_forks.read().unwrap();
         let new_root = (old_root + 1..=slot).rev().find(|slot| {
-            cert_pool.is_finalized(*slot) && ctx.bank_forks.read().unwrap().is_frozen(*slot)
+            info!("{}: Checking slot {slot} for finalization certificate", ctx.my_pubkey);
+            cert_pool.is_finalized(*slot) && bank_fork_rl.is_frozen(*slot)
         })?;
-        trace!("{}: Attempting to set new root {new_root}", ctx.my_pubkey);
+        datapoint_info!(
+            "alpenglow_consensus_set_root",
+            ("slot", new_root, i64),
+            ("old_root", old_root, i64),
+            ("new_root", new_root, i64),
+        );
+        info!("{}: Attempting to set new root {new_root}", ctx.my_pubkey);
         vctx.vote_history.set_root(new_root);
-        cert_pool.handle_new_root(ctx.bank_forks.read().unwrap().get(new_root).unwrap());
+        cert_pool.handle_new_root(bank_fork_rl.get(new_root).unwrap());
+        drop(bank_fork_rl);
+
         if let Err(e) = ReplayStage::check_and_handle_new_root(
             &ctx.my_pubkey,
             slot,
