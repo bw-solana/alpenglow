@@ -4312,11 +4312,13 @@ impl ReplayStage {
         tbft_structs: Option<&mut TowerBFTStructures>,
     ) -> Result<(), SetRootError> {
         // get the root bank before squash
+        info!("{} check_and_handle_new_root: {} -> {}", my_pubkey, parent_slot, new_root);
         let root_bank = bank_forks
             .read()
             .unwrap()
             .get(new_root)
             .expect("Root bank doesn't exist");
+        info!("{} got root bank: {}", my_pubkey, root_bank.slot());
         let mut rooted_banks = root_bank.parents();
         let oldest_parent = rooted_banks.last().map(|last| last.parent_slot());
         rooted_banks.push(root_bank.clone());
@@ -4339,6 +4341,7 @@ impl ReplayStage {
         blockstore
             .set_roots(rooted_slots.iter())
             .expect("Ledger set roots failed");
+        info!("{} handling new root: {}", my_pubkey, new_root);
         Self::handle_new_root(
             new_root,
             bank_forks,
@@ -4350,6 +4353,7 @@ impl ReplayStage {
             drop_bank_sender,
             tbft_structs,
         )?;
+        info!("{} handled new root: {}", my_pubkey, new_root);
         blockstore.slots_stats.mark_rooted(new_root);
         rpc_subscriptions.notify_roots(rooted_slots);
         if let Some(sender) = bank_notification_sender {
