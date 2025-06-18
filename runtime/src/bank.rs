@@ -2589,6 +2589,7 @@ impl Bank {
     }
 
     pub fn freeze(&self) {
+        info!("Freezing bank at slot {}", self.slot());
         // This lock prevents any new commits from BankingStage
         // `Consumer::execute_and_commit_transactions_locked()` from
         // coming in after the last tick is observed. This is because in
@@ -2647,6 +2648,8 @@ impl Bank {
             *hash = self.hash_internal_state();
             self.rc.accounts.accounts_db.mark_slot_frozen(self.slot());
         }
+        drop(hash);
+        info!("Done freezing bank at slot {}", self.slot());
     }
 
     // dangerous; don't use this; this is only needed for ledger-tool's special command
