@@ -199,6 +199,7 @@ pub fn execute_batch<'a>(
                 // freezing in the middle of this code-path. Otherwise, the assertion at the start
                 // of commit_transactions() would trigger panic because it's fatal runtime
                 // invariant violation.
+                info!("execute_batch grabbing freeze lock for bank: {}", bank.slot());
                 let freeze_lock = bank.freeze_lock();
 
                 if let Some(index) = extra_pre_commit_callback(&processing_results[0])? {

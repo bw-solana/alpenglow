@@ -3523,6 +3523,7 @@ impl ReplayStage {
                 if let Some(transaction_status_sender) = transaction_status_sender {
                     transaction_status_sender.send_transaction_status_freeze_message(bank);
                 }
+                info!("freezing bank {} after completed replay", bank.slot());
                 bank.freeze();
                 datapoint_info!(
                     "bank_frozen",

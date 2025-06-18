@@ -683,6 +683,7 @@ impl Consumer {
                 })
                 .collect_vec());
 
+        info!("execute_and_commit_transactions_locked grabbing freeze lock for bank: {}", bank.slot());
         let (freeze_lock, freeze_lock_us) = measure_us!(bank.freeze_lock());
         execute_and_commit_timings.freeze_lock_us = freeze_lock_us;
 
@@ -738,6 +739,7 @@ impl Consumer {
             };
 
         drop(freeze_lock);
+        info!("execute_and_commit_transactions_locked released freeze lock for bank: {}", bank.slot());
 
         debug!(
             "bank: {} process_and_record_locked: {}us record: {}us commit: {}us txs_len: {}",

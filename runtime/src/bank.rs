@@ -1267,6 +1267,7 @@ impl Bank {
         let mut time = Measure::start("bank::new_from_parent");
         let NewBankOptions { vote_only_bank } = new_bank_options;
 
+        info!("freezing bank {} in _new_from_parent", parent.slot());
         parent.freeze();
         assert_ne!(slot, parent.slot());
 
@@ -2001,7 +2002,7 @@ impl Bank {
     }
 
     pub fn is_frozen(&self) -> bool {
-        info!("checking is_frozen");
+        info!("checking is_frozen {}", self.slot);
         let x = *self.hash.read().unwrap() != Hash::default();
         info!("is_frozen: {}", x);
         x
@@ -2591,7 +2592,7 @@ impl Bank {
         // record and commit are finished, those transactions will be
         // committed before this write lock can be obtained here.
         let mut hash = self.hash.write().unwrap();
-        info!("Acquired hash write lock for rehashing bank at slot {}", self.slot());
+        info!("Acquired hash write lock for hashing bank at slot {}", self.slot());
         if *hash == Hash::default() {
             // finish up any deferred changes to account state
             self.collect_rent_eagerly();
@@ -4602,6 +4603,7 @@ impl Bank {
             timings,
         );
         drop(freeze_lock);
+        info!("do_load_execute_and_commit_transactions_with_pre_commit_callback released freeze lock for bank: {}", self.slot());
         let post_balances = if collect_balances {
             self.collect_balances(batch)
         } else {

@@ -225,7 +225,7 @@ pub fn start_loop(config: BlockCreationLoopConfig) {
                 let mut w_poh_recorder = poh_recorder.write().unwrap();
                 if let Some(bank) = w_poh_recorder.bank() {
                     assert_eq!(bank.slot(), slot);
-                    trace!(
+                    info!(
                         "{}: bank {} has reached block timeout, ticking",
                         bank.collector_id(),
                         bank.slot()
@@ -241,7 +241,7 @@ pub fn start_loop(config: BlockCreationLoopConfig) {
                     drop(bank);
                     w_poh_recorder.tick_alpenglow(max_tick_height);
                 } else {
-                    trace!("{my_pubkey}: {slot} reached max tick height, moving to next block");
+                    info!("{my_pubkey}: {slot} reached max tick height, moving to next block");
                 }
             }
 
@@ -255,7 +255,7 @@ pub fn start_loop(config: BlockCreationLoopConfig) {
             // Produce our next slot
             slot += 1;
             if slot > end_slot {
-                trace!("{my_pubkey}: finished leader window {start_slot}-{end_slot}");
+                info!("{my_pubkey}: finished leader window {start_slot}-{end_slot}");
                 break;
             }
 
@@ -311,7 +311,7 @@ fn start_leader_retry_replay(
                 return Ok(());
             }
             Err(StartLeaderError::ReplayIsBehind(_)) => {
-                trace!(
+                info!(
                     "{my_pubkey}: Attempting to produce slot {slot}, however replay of the \
                     the parent {parent_slot} is not yet finished, waiting. Skip timer {}",
                     skip_timer.elapsed().as_millis()
