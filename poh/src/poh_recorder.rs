@@ -228,6 +228,7 @@ impl TransactionRecorder {
                         // A result may have come in between when we timed out checking this
                         // bool, so check the channel again, even if is_exited == true
                         is_exited = self.is_exited.load(Ordering::SeqCst);
+                        error!("{bank_slot} PohRecorder::record timed out, is_exited: {}", is_exited);
                     }
                 }
                 Err(RecvTimeoutError::Disconnected) => {
