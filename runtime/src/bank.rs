@@ -2001,7 +2001,24 @@ impl Bank {
     }
 
     pub fn is_frozen(&self) -> bool {
-        *self.hash.read().unwrap() != Hash::default()
+        let mut hash_lock_acquire_fails = 0;
+        let hash_rl = loop {
+            // Attempt to acquire the read lock on the hash
+            match self.hash.try_read() {
+                Ok(guard) => break guard,
+                Err(_) => {
+                    hash_lock_acquire_fails += 1;
+                    if hash_lock_acquire_fails > 100 {
+                        error!(
+                            "Failed to acquire hash read lock after {hash_lock_acquire_fails} attempts in a row!"
+                        );
+                    }
+                    // If we cannot acquire the lock, wait a bit and try again
+                    std::thread::sleep(Duration::from_micros(10));
+                }
+            }
+        };
+        *hash_rl != Hash::default()
     }
 
     pub fn freeze_started(&self) -> bool {

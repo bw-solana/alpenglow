@@ -295,8 +295,10 @@ impl VotingLoop {
                 );
 
                 // Wait until we either vote notarize or skip
+                let mut bank_fork_lock_acquire_fails = 0;
                 while !voting_context.vote_history.voted(current_slot) {
                     if exit.load(Ordering::Relaxed) {
+                        error!("{my_pubkey}: Voting loop exiting due to exit flag");
                         return;
                     }
 
@@ -311,11 +313,25 @@ impl VotingLoop {
                             &mut voting_context,
                         );
                         debug_assert!(voting_context.vote_history.voted(current_slot));
+                        info!(
+                            "{my_pubkey}: timeout reached for slot {current_slot}, continuing voting loop"
+                        );
                         break;
                     }
 
                     // Check if replay has successfully completed
-                    let Some(bank) = bank_forks.read().unwrap().get(current_slot) else {
+                    let Ok(bank_fork_rl) = bank_forks.try_read() else {
+                        bank_fork_lock_acquire_fails += 1;
+                        if bank_fork_lock_acquire_fails > 50 {
+                            error!(
+                                "{my_pubkey}: Failed to acquire bank_forks read lock after 50 attempts in a row!"
+                            );
+                        }
+                        continue;
+                    };
+                    bank_fork_lock_acquire_fails = 0;
+                    let Some(bank) = bank_fork_rl.get(current_slot) else {
+                        drop(bank_fork_rl);
                         continue;
                     };
                     if !bank.is_frozen() {
@@ -499,7 +515,23 @@ impl VotingLoop {
             "{}: Checking for finalization certificates between {old_root} and {slot}",
             ctx.my_pubkey
         );
-        let bank_fork_rl = ctx.bank_forks.read().unwrap();
+        let mut bank_fork_lock_acquire_fails = 0;
+        let bank_fork_rl = loop {
+            match ctx.bank_forks.try_read() {
+                Ok(bank_fork_rl) => break bank_fork_rl,
+                Err(_) => {
+                    bank_fork_lock_acquire_fails += 1;
+                    if bank_fork_lock_acquire_fails > 50 {
+                        error!(
+                            "{}: Failed to acquire bank_forks read lock after {bank_fork_lock_acquire_fails} attempts in a row!",
+                            ctx.my_pubkey
+                        );
+                    }
+                    // If we cannot acquire the lock, wait a bit and try again
+                    thread::sleep(Duration::from_micros(30));
+                }
+            }
+        };
         let new_root = match (old_root + 1..=slot).rev().find(|slot| {
             info!("{}: Checking slot {slot} for finalization certificate", ctx.my_pubkey);
             let x = cert_pool.is_finalized(*slot);
