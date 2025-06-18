@@ -453,7 +453,15 @@ impl VotingLoop {
         let new_root = (old_root + 1..=slot).rev().find(|slot| {
             cert_pool.is_finalized(*slot) && ctx.bank_forks.read().unwrap().is_frozen(*slot)
         })?;
-        trace!("{}: Attempting to set new root {new_root}", ctx.my_pubkey);
+
+        datapoint_info!(
+            "alpenglow_set_root",
+            ("old_root", old_root, i64),
+            ("new_root", new_root, i64),
+            ("slot", slot, i64),
+        );
+        
+        info!("{}: Attempting to set new root {new_root}", ctx.my_pubkey);
         vctx.vote_history.set_root(new_root);
         cert_pool.handle_new_root(ctx.bank_forks.read().unwrap().get(new_root).unwrap());
         pending_blocks.split_off(&new_root);

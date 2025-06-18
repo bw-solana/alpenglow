@@ -4334,6 +4334,7 @@ impl ReplayStage {
         drop_bank_sender: &Sender<Vec<BankWithScheduler>>,
         tbft_structs: Option<&mut TowerBFTStructures>,
     ) -> Result<(), SetRootError> {
+        info!("{} check_and_handle_new_root: parent_slot: {}, new_root: {}", my_pubkey, parent_slot, new_root);
         // get the root bank before squash
         let root_bank = bank_forks
             .read()
@@ -4362,6 +4363,7 @@ impl ReplayStage {
         blockstore
             .set_roots(rooted_slots.iter())
             .expect("Ledger set roots failed");
+        info!("{} about to handle new root: {}", my_pubkey, new_root);
         Self::handle_new_root(
             new_root,
             bank_forks,
@@ -4373,6 +4375,7 @@ impl ReplayStage {
             drop_bank_sender,
             tbft_structs,
         )?;
+        info!("{} handled new root: {}", my_pubkey, new_root);
         blockstore.slots_stats.mark_rooted(new_root);
         rpc_subscriptions.notify_roots(rooted_slots);
         if let Some(sender) = bank_notification_sender {
