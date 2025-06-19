@@ -248,6 +248,30 @@ impl PohService {
         }
     }
 
+    pub fn drain_record_receiver_and_process(
+        poh_recorder: &Arc<RwLock<PohRecorder>>,
+        record_receiver: &Receiver<Record>,
+    ) {
+        loop {
+            let record = record_receiver.try_recv();
+            let Ok(record) = record else {
+                break;
+            };
+
+            if record
+                .sender
+                .send(poh_recorder.write().unwrap().record(
+                    record.slot,
+                    record.mixin,
+                    record.transactions,
+                ))
+                .is_err()
+            {
+                panic!("Error returning mixin hash");
+            }
+        }
+    }
+
     fn short_lived_low_power_tick_producer(
         poh_recorder: Arc<RwLock<PohRecorder>>,
         poh_config: &PohConfig,

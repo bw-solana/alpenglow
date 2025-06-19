@@ -246,10 +246,9 @@ pub fn start_loop(config: BlockCreationLoopConfig) {
             }
 
             assert!(!poh_recorder.read().unwrap().has_bank());
-            PohService::read_record_receiver_and_process(
+            PohService::drain_record_receiver_and_process(
                 &poh_recorder,
                 &record_receiver,
-                remaining_slot_time, /* 0 */
             );
 
             // Produce our next slot
