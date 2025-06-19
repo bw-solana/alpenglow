@@ -266,10 +266,20 @@ impl VotingLoop {
 
             if is_leader {
                 // Let the block creation loop know it is time for it to produce the window
-                let parent_block = cert_pool
+                let parent_block = match cert_pool
                     .parent_ready_tracker
-                    .block_production_parent(current_slot)
-                    .expect("Must have a block production parent in sequential voting loop");
+                    .block_production_parent(current_slot) {
+                    Some(parent_block) => parent_block,
+                    None => {
+                        error!(
+                            "{my_pubkey}: I'm leader but have no parent for slot {current_slot}: parent_ready_tracker: {:?}",
+                            cert_pool.parent_ready_tracker,
+                        );
+                        panic!(
+                            "{my_pubkey}: No block production parent found for slot {current_slot}. Exiting",
+                        );
+                    }
+                };
                 Self::notify_block_creation_loop_of_leader_window(
                     &my_pubkey,
                     &cert_pool,
