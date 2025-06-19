@@ -1267,8 +1267,8 @@ impl Bank {
         let mut time = Measure::start("bank::new_from_parent");
         let NewBankOptions { vote_only_bank } = new_bank_options;
 
-        info!("freezing bank {} in _new_from_parent", parent.slot());
-        parent.freeze();
+        //info!("freezing bank {} in _new_from_parent", parent.slot());
+        //parent.freeze();
         assert_ne!(slot, parent.slot());
 
         let epoch_schedule = parent.epoch_schedule().clone();
