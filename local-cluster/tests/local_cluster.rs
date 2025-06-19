@@ -6142,8 +6142,6 @@ fn test_restart_node_alpenglow() {
 }
 
 /// We start 2 nodes, where the first node A holds 90% of the stake
-/// The leader schedule is also setup so that the A is always the leader.
-/// As a result, A can progress by itself.
 ///
 /// We let A run by itself, and ensure that B can join and rejoin the network
 /// through fast forwarding their slot on receiving A's finalization certificate
@@ -6162,8 +6160,9 @@ fn test_alpenglow_imbalanced_stakes_catchup() {
     let node_stakes = vec![node_a_stake, node_b_stake];
     let num_nodes = node_stakes.len();
 
-    // Create leader schedule with A as the leader always
-    let (leader_schedule, validator_keys) = create_custom_leader_schedule_with_random_keys(&[1, 0]);
+    // Create leader schedule with A and B as leader 70/30
+    let (leader_schedule, validator_keys) =
+        create_custom_leader_schedule_with_random_keys(&[70, 30]);
 
     let leader_schedule = FixedSchedule {
         leader_schedule: Arc::new(leader_schedule),
