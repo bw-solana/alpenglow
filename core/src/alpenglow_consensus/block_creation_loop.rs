@@ -168,15 +168,21 @@ pub fn start_loop(config: BlockCreationLoopConfig) {
             let window_info = leader_window_notifier.window_info.lock().unwrap();
             let (mut guard, timeout_res) = leader_window_notifier
                 .window_notification
-                .wait_timeout_while(window_info, Duration::from_secs(1), |wi| wi.is_none())
+                .wait_timeout_while(window_info, Duration::from_millis(10), |wi| wi.is_none())
                 .unwrap();
+
+            PohService::drain_record_receiver_and_process(
+                &poh_recorder,
+                &record_receiver,
+            );
+
             if timeout_res.timed_out() {
                 continue;
             }
             guard.take().unwrap()
         };
 
-        trace!(
+        info!(
             "Received window notification for {start_slot} to {end_slot} \
             parent: {parent_slot}"
         );
@@ -389,6 +395,8 @@ fn maybe_start_leader(
 fn create_and_insert_leader_bank(slot: Slot, parent_bank: Arc<Bank>, ctx: &LeaderContext) {
     let parent_slot = parent_bank.slot();
     let root_slot = ctx.bank_forks.read().unwrap().root();
+    info!("{}: Creating bank for slot {slot} with parent {parent_slot} root {root_slot}",
+        ctx.my_pubkey);
 
     if let Some(bank) = ctx.poh_recorder.read().unwrap().bank() {
         panic!(
@@ -405,9 +413,20 @@ fn create_and_insert_leader_bank(slot: Slot, parent_bank: Arc<Bank>, ctx: &Leade
         //
         // TODO: On migration need to keep the ticks around for parent slots in previous epoch
         // because reset below will delete those ticks
+        info!(
+            "{}: Resetting poh recorder to parent slot {}",
+            ctx.my_pubkey, parent_slot
+        );
         reset_poh_recorder(&parent_bank, ctx);
+    } else {
+        info!(
+            "{}: Poh recorder already set to parent slot {}",
+            ctx.my_pubkey, parent_slot
+        );
     }
 
+    info!("{}: Creating bank for slot {} with parent {}",
+        ctx.my_pubkey, slot, parent_slot);
     let tpu_bank = ReplayStage::new_bank_from_parent_with_notify(
         parent_bank.clone(),
         slot,
@@ -426,6 +445,8 @@ fn create_and_insert_leader_bank(slot: Slot, parent_bank: Arc<Bank>, ctx: &Leade
     );
 
     // Insert the bank
+    info!("{}: Inserting bank for slot {} with parent {}",
+        ctx.my_pubkey, slot, parent_slot);
     let tpu_bank = ctx.bank_forks.write().unwrap().insert(tpu_bank);
     let poh_bank_start = ctx
         .poh_recorder

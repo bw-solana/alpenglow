@@ -218,6 +218,7 @@ impl TransactionRecorder {
         }
         // Besides validator exit, this timeout should primarily be seen to affect test execution environments where the various pieces can be shutdown abruptly
         let mut is_exited = false;
+        let mut timeouts = 0;
         loop {
             let res = result_receiver.recv_timeout(Duration::from_millis(1000));
             match res {
@@ -229,6 +230,14 @@ impl TransactionRecorder {
                         // bool, so check the channel again, even if is_exited == true
                         is_exited = self.is_exited.load(Ordering::SeqCst);
                         error!("{bank_slot} PohRecorder::record timed out, is_exited: {}", is_exited);
+                        timeouts += 1;
+
+                        if timeouts > 10 {
+                            // If we timeout more than 10 times, then we are likely in a deadlock situation
+                            // and should exit the process.
+                            error!("PohRecorder::record timed out too many times, exiting");
+                            std::process::exit(1);
+                        }
                     }
                 }
                 Err(RecvTimeoutError::Disconnected) => {
