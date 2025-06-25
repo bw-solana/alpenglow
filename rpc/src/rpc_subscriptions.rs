@@ -512,7 +512,7 @@ impl PubsubNotificationStats {
 }
 
 pub struct RpcSubscriptions {
-    notification_sender: Option<Sender<TimestampedNotificationEntry>>,
+    pub notification_sender: Option<Sender<TimestampedNotificationEntry>>,
     t_cleanup: Option<JoinHandle<()>>,
 
     exit: Arc<AtomicBool>,

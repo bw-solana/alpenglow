@@ -117,7 +117,8 @@ impl VoteTracker {
     pub(crate) fn insert_vote(&self, slot: Slot, pubkey: Pubkey) {
         let mut w_slot_vote_trackers = self.slot_vote_trackers.write().unwrap();
 
-        let slot_vote_tracker = w_slot_vote_trackers.entry(slot).or_default();
+        let slot_vote_tracker: &mut Arc<RwLock<SlotVoteTracker>> =
+            w_slot_vote_trackers.entry(slot).or_default();
 
         let mut w_slot_vote_tracker = slot_vote_tracker.write().unwrap();
 
@@ -140,6 +141,10 @@ impl VoteTracker {
 
     fn progress_with_new_root_bank(&self, root_bank: &Bank) {
         self.purge_stale_state(root_bank);
+    }
+
+    pub fn num_slots(&self) -> usize {
+        self.slot_vote_trackers.read().unwrap().len()
     }
 }
 

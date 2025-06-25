@@ -124,7 +124,7 @@ impl PrioritizationFeeCacheMetrics {
 }
 
 #[derive(Debug)]
-enum CacheServiceUpdate {
+pub enum CacheServiceUpdate {
     TransactionUpdate {
         slot: Slot,
         bank_id: BankId,
@@ -145,7 +145,7 @@ enum CacheServiceUpdate {
 pub struct PrioritizationFeeCache {
     cache: Arc<RwLock<BTreeMap<Slot, PrioritizationFee>>>,
     service_thread: Option<JoinHandle<()>>,
-    sender: Sender<CacheServiceUpdate>,
+    pub sender: Sender<CacheServiceUpdate>,
     metrics: Arc<PrioritizationFeeCacheMetrics>,
 }
 

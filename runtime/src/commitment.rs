@@ -77,6 +77,10 @@ impl BlockCommitmentCache {
         }
     }
 
+    pub fn get_block_len(&self) -> usize {
+        self.block_commitment.len()
+    }
+
     pub fn get_block_commitment(&self, slot: Slot) -> Option<&BlockCommitment> {
         self.block_commitment.get(&slot)
     }

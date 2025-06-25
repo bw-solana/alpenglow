@@ -446,7 +446,7 @@ impl SnapshotRequestHandler {
 
 #[derive(Default, Clone)]
 pub struct AbsRequestSender {
-    snapshot_request_sender: Option<SnapshotRequestSender>,
+    pub snapshot_request_sender: Option<SnapshotRequestSender>,
 }
 
 impl AbsRequestSender {

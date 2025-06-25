@@ -771,7 +771,34 @@ impl RepairService {
             outstanding_repairs: HashMap::new(),
         };
 
+        let mut last_report = Instant::now();
         while !exit.load(Ordering::Relaxed) {
+            if last_report.elapsed().as_secs() > 9 {
+                datapoint_info!(
+                    "repair_service_memory",
+                    (
+                        "verified_vote_receiver",
+                        repair_channels.verified_vote_receiver.len(),
+                        i64
+                    ),
+                    (
+                        "dumped_slots_receiver",
+                        repair_channels.dumped_slots_receiver.len(),
+                        i64
+                    ),
+                    (
+                        "popular_pruned_forks_sender",
+                        repair_channels.popular_pruned_forks_sender.len(),
+                        i64
+                    ),
+                    (
+                        "ancestor_duplicate_slots_sender",
+                        repair_info.ancestor_duplicate_slots_sender.len(),
+                        i64
+                    ),
+                );
+                last_report = Instant::now();
+            }
             Self::run_repair_iteration(
                 blockstore,
                 &repair_channels,

@@ -37,12 +37,12 @@ impl TransactionSigVerifier {
 
     pub fn new(
         banking_stage_sender: BankingPacketSender,
-        forward_stage_sender: Option<Sender<(BankingPacketBatch, bool)>>,
+        _forward_stage_sender: Option<Sender<(BankingPacketBatch, bool)>>,
     ) -> Self {
         init();
         Self {
             banking_stage_sender,
-            forward_stage_sender,
+            forward_stage_sender: None,
             recycler: Recycler::warmed(50, 4096),
             recycler_out: Recycler::warmed(50, 4096),
             reject_non_vote: false,

@@ -4,7 +4,7 @@ use {
     std::collections::{BTreeMap, HashMap},
 };
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct UnfrozenGossipVerifiedVoteHashes {
     pub votes_per_slot: BTreeMap<Slot, HashMap<Hash, Vec<Pubkey>>>,
 }

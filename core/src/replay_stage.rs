@@ -686,9 +686,9 @@ impl ReplayStage {
                 drop_bank_sender: drop_bank_sender.clone(),
                 bank_notification_sender: bank_notification_sender.clone(),
                 leader_window_notifier,
-                certificate_sender,
+                certificate_sender: certificate_sender.clone(),
                 completed_block_receiver,
-                vote_receiver: alpenglow_vote_receiver,
+                vote_receiver: alpenglow_vote_receiver.clone(),
             };
             Some(VotingLoop::new(voting_loop_config))
         } else {
@@ -803,7 +803,160 @@ impl ReplayStage {
                 );
             }
 
+            let mut last_report = Instant::now();
             loop {
+                if last_report.elapsed() > Duration::from_secs(30) {
+                    let rpc_subscriptions_len = rpc_subscriptions
+                        .notification_sender
+                        .as_ref()
+                        .map_or(0, |s| s.len());
+                    let abrs_len = accounts_background_request_sender
+                        .snapshot_request_sender
+                        .as_ref()
+                        .map_or(0, |s| s.len());
+                    let tss_len = transaction_status_sender
+                        .as_ref()
+                        .map_or(0, |s| s.sender.len());
+                    let bms_len = block_meta_sender.as_ref().map_or(0, |s| s.len());
+                    let ens_len = entry_notification_sender.as_ref().map_or(0, |s| s.len());
+                    let bns_len = bank_notification_sender
+                        .as_ref()
+                        .map_or(0, |s| s.sender.len());
+                    let bt_len = banking_tracer
+                        .active_tracer
+                        .as_ref()
+                        .map_or(0, |t| t.trace_sender.len());
+                    datapoint_info!(
+                        "replay_stage_memory",
+                        ("rpc_subscriptions", rpc_subscriptions_len, i64),
+                        ("accounts_background_request_sender", abrs_len, i64),
+                        ("transaction_status_sender", tss_len, i64),
+                        ("block_meta_sender", bms_len, i64),
+                        ("entry_notification_sender", ens_len, i64),
+                        ("bank_notification_sender", bns_len, i64),
+                        (
+                            "ancestor_hashes_replay_update_sender",
+                            ancestor_hashes_replay_update_sender.len(),
+                            i64
+                        ),
+                        (
+                            "retransmit_slots_sender",
+                            retransmit_slots_sender.len(),
+                            i64
+                        ),
+                        ("replay_vote_sender", replay_vote_sender.len(), i64),
+                        (
+                            "cluster_slots_update_sender",
+                            cluster_slots_update_sender.len(),
+                            i64
+                        ),
+                        ("cost_update_sender", cost_update_sender.len(), i64),
+                        ("voting_sender", voting_sender.len(), i64),
+                        ("drop_bank_sender", drop_bank_sender.len(), i64),
+                        ("dumped_slots_sender", dumped_slots_sender.len(), i64),
+                        ("alpenglow_vote_sender", alpenglow_vote_sender.len(), i64),
+                        ("certificate_sender", certificate_sender.len(), i64),
+                        ("ledger_signal_receiver", ledger_signal_receiver.len(), i64),
+                        (
+                            "duplicate_slots_receiver",
+                            duplicate_slots_receiver.len(),
+                            i64
+                        ),
+                        (
+                            "ancestor_duplicate_slots_receiver",
+                            ancestor_duplicate_slots_receiver.len(),
+                            i64
+                        ),
+                        (
+                            "duplicate_confirmed_slots_receiver",
+                            duplicate_confirmed_slots_receiver.len(),
+                            i64
+                        ),
+                        (
+                            "gossip_verified_vote_hash_receiver",
+                            gossip_verified_vote_hash_receiver.len(),
+                            i64
+                        ),
+                        (
+                            "popular_pruned_forks_receiver",
+                            popular_pruned_forks_receiver.len(),
+                            i64
+                        ),
+                        (
+                            "alpenglow_vote_receiver",
+                            alpenglow_vote_receiver.len(),
+                            i64
+                        ),
+                        ("banking_tracer", bt_len, i64),
+                        (
+                            "prioritization_fee_cache",
+                            prioritization_fee_cache.available_block_count(),
+                            i64
+                        ),
+                        (
+                            "prioritization_fee_sender",
+                            prioritization_fee_cache.sender.len(),
+                            i64
+                        ),
+                        ("vote_tracker_slots", vote_tracker.num_slots(), i64),
+                        ("tower", tower.tower_slots().len(), i64),
+                        (
+                            "block_commitment_cache",
+                            block_commitment_cache.read().unwrap().get_block_len(),
+                            i64
+                        ),
+                        ("lockouts_sender", lockouts_sender.len(), i64),
+                        ("progress", progress.len(), i64),
+                        (
+                            "last_reset_bank_descendants",
+                            last_reset_bank_descendants.len(),
+                            i64
+                        ),
+                        (
+                            "duplicate_slots_tracker",
+                            tbft_structs.duplicate_slots_tracker.len(),
+                            i64
+                        ),
+                        (
+                            "duplicate_confirmed_slots",
+                            tbft_structs.duplicate_confirmed_slots.len(),
+                            i64
+                        ),
+                        (
+                            "epoch_slots_frozen_slots",
+                            tbft_structs.epoch_slots_frozen_slots.len(),
+                            i64
+                        ),
+                        (
+                            "duplicate_slots_to_repair",
+                            duplicate_slots_to_repair.len(),
+                            i64
+                        ),
+                        (
+                            "purge_repair_slot_counter",
+                            purge_repair_slot_counter.len(),
+                            i64
+                        ),
+                        (
+                            "unfrozen_gossip_verified_vote_hashes",
+                            tbft_structs
+                                .unfrozen_gossip_verified_vote_hashes
+                                .votes_per_slot
+                                .len(),
+                            i64
+                        ),
+                        ("voted_signatures", voted_signatures.len(), i64),
+                    );
+                    /*
+                        X leader_schedule_cache,
+                        X vote_history,
+                        X vote_history_storage
+                        X slot_status_notifier
+                        X block_metadata_notifier
+                    */
+                    last_report = Instant::now();
+                }
+
                 // Stop getting entries if we get exit signal
                 if exit.load(Ordering::Relaxed) {
                     break;
