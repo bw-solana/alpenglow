@@ -45,8 +45,9 @@ const SOCKET_TAG_TPU_VOTE_QUIC: u8 = 12;
 const SOCKET_TAG_TVU: u8 = 10;
 const SOCKET_TAG_TVU_QUIC: u8 = 11;
 const SOCKET_TAG_ALPENGLOW: u8 = 13;
-const_assert_eq!(SOCKET_CACHE_SIZE, 14);
-const SOCKET_CACHE_SIZE: usize = SOCKET_TAG_ALPENGLOW as usize + 1usize;
+const SOCKET_TAG_ALPENGLOW_QUIC: u8 = 14;
+const_assert_eq!(SOCKET_CACHE_SIZE, 15);
+const SOCKET_CACHE_SIZE: usize = SOCKET_TAG_ALPENGLOW_QUIC as usize + 1usize;
 
 // An alias for a function that reads data from a ContactInfo entry stored in
 // the gossip CRDS table.
@@ -286,7 +287,7 @@ impl ContactInfo {
     );
     get_socket!(tpu_vote, SOCKET_TAG_TPU_VOTE, SOCKET_TAG_TPU_VOTE_QUIC);
     get_socket!(tvu, SOCKET_TAG_TVU, SOCKET_TAG_TVU_QUIC);
-    get_socket!(alpenglow, SOCKET_TAG_ALPENGLOW);
+    get_socket!(alpenglow, SOCKET_TAG_ALPENGLOW, SOCKET_TAG_ALPENGLOW_QUIC);
 
     set_socket!(set_gossip, SOCKET_TAG_GOSSIP);
     set_socket!(set_rpc, SOCKET_TAG_RPC);
@@ -300,7 +301,7 @@ impl ContactInfo {
     set_socket!(@multi set_serve_repair, SOCKET_TAG_SERVE_REPAIR, SOCKET_TAG_SERVE_REPAIR_QUIC);
     set_socket!(@multi set_tpu_vote, SOCKET_TAG_TPU_VOTE, SOCKET_TAG_TPU_VOTE_QUIC);
     set_socket!(@multi set_tvu, SOCKET_TAG_TVU, SOCKET_TAG_TVU_QUIC);
-    set_socket!(set_alpenglow, SOCKET_TAG_ALPENGLOW);
+    set_socket!(@multi set_alpenglow, SOCKET_TAG_ALPENGLOW, SOCKET_TAG_ALPENGLOW_QUIC);
 
     remove_socket!(
         remove_serve_repair,
@@ -314,7 +315,11 @@ impl ContactInfo {
         SOCKET_TAG_TPU_FORWARDS_QUIC
     );
     remove_socket!(remove_tvu, SOCKET_TAG_TVU, SOCKET_TAG_TVU_QUIC);
-    remove_socket!(remove_alpenglow, SOCKET_TAG_ALPENGLOW);
+    remove_socket!(
+        remove_alpenglow,
+        SOCKET_TAG_ALPENGLOW,
+        SOCKET_TAG_ALPENGLOW_QUIC
+    );
 
     #[cfg(test)]
     fn get_socket(&self, key: u8) -> Result<SocketAddr, Error> {

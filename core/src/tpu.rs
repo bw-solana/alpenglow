@@ -85,6 +85,7 @@ pub struct TpuSockets {
     /// Client-side socket for the forwarding votes.
     pub vote_forwarding_client: UdpSocket,
     pub vortexor_receivers: Option<Vec<UdpSocket>>,
+    pub alpenglow: UdpSocket,
     pub alpenglow_quic: UdpSocket,
 }
 
@@ -180,6 +181,7 @@ impl Tpu {
             vote_quic: tpu_vote_quic_sockets,
             vote_forwarding_client: vote_forwarding_client_socket,
             vortexor_receivers,
+            alpenglow: alpenglow_socket,
             alpenglow_quic: alpenglow_quic_socket,
         } = sockets;
 
@@ -191,7 +193,7 @@ impl Tpu {
             transactions_sockets,
             tpu_forwards_sockets,
             tpu_vote_sockets,
-            alpenglow_quic_socket.try_clone().unwrap(),
+            alpenglow_socket.try_clone().unwrap(),
             exit.clone(),
             &packet_sender,
             &vote_packet_sender,

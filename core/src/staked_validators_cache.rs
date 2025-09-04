@@ -124,7 +124,7 @@ impl StakedValidatorsCache {
             .filter_map(|(pubkey, stake)| {
                 cluster_info.lookup_contact_info(pubkey, |node| {
                     let tpu_socket = node.tpu_vote(self.protocol);
-                    let alpenglow_socket = node.alpenglow();
+                    let alpenglow_socket = node.alpenglow(self.protocol);
                     // To not change current behavior, we only consider nodes that have a
                     // TPU socket, and ignore nodes that only have an Alpenglow socket.
                     // TODO(wen): tpu_socket is no longer needed after Alpenglow migration.

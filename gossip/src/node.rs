@@ -246,6 +246,9 @@ impl Node {
         let (alpenglow_port, alpenglow) =
             bind_in_range_with_config(bind_ip_addr, port_range, socket_config)
                 .expect("Alpenglow port bind should succeed");
+        let (alpenglow_quic_port, alpenglow_quic) =
+            bind_in_range_with_config(bind_ip_addr, port_range, socket_config)
+                .expect("Alpenglow port bind should succeed");
         // These are "client" sockets, so they could use ephemeral ports, but we
         // force them into the provided port_range to simplify the operations.
 
@@ -299,7 +302,10 @@ impl Node {
             .unwrap();
         info.set_serve_repair(QUIC, (advertised_ip, serve_repair_quic_port))
             .unwrap();
-        info.set_alpenglow((advertised_ip, alpenglow_port)).unwrap();
+        info.set_alpenglow(UDP, (advertised_ip, alpenglow_port))
+            .unwrap();
+        info.set_alpenglow(QUIC, (advertised_ip, alpenglow_quic_port))
+            .unwrap();
 
         let vortexor_receivers = vortexor_receiver_addr.map(|vortexor_receiver_addr| {
             multi_bind_in_range_with_config(
@@ -344,6 +350,7 @@ impl Node {
             rpc_sts_client,
             vortexor_receivers,
             alpenglow,
+            alpenglow_quic,
         };
         info!("Bound all network sockets as follows: {:#?}", &sockets);
         Node {

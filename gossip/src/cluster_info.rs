@@ -571,7 +571,7 @@ impl ClusterInfo {
                     }
                     let ip_addr = node.gossip().as_ref().map(SocketAddr::ip);
                     Some(format!(
-                        "{:15} {:2}| {:5} | {:44} |{:^9}| {:5}|  {:5}| {:5}| {:5}| {:5}| {:5}| {:5}| {:5}| {}\n",
+                        "{:15} {:2}| {:5} | {:44} |{:^9}| {:5}|  {:5}| {:5}| {:5}| {:5}| {:5}| {:5}| {:5}| {:5}| {}\n",
                         node.gossip()
                             .filter(|addr| self.socket_addr_space.check(addr))
                             .as_ref()
@@ -601,7 +601,8 @@ impl ClusterInfo {
                         self.addr_to_string(&ip_addr, &node.tvu(contact_info::Protocol::UDP)),
                         self.addr_to_string(&ip_addr, &node.tvu(contact_info::Protocol::QUIC)),
                         self.addr_to_string(&ip_addr, &node.serve_repair(contact_info::Protocol::UDP)),
-                        self.addr_to_string(&ip_addr, &node.alpenglow()),
+                        self.addr_to_string(&ip_addr, &node.alpenglow(contact_info::Protocol::UDP)),
+                        self.addr_to_string(&ip_addr, &node.alpenglow(contact_info::Protocol::QUIC)),
                         node.shred_version(),
                     ))
                 }
@@ -610,7 +611,7 @@ impl ClusterInfo {
 
         format!(
             "IP Address        |Age(ms)| Node identifier                              \
-             | Version |Gossip|TPUvote| TPU  |TPUfwd| TVU  |TVU Q |ServeR|Alpeng|ShredVer\n\
+             | Version |Gossip|TPUvote| TPU  |TPUfwd| TVU  |TVU Q |ServeR|Alpeng|Alpen Q|ShredVer\n\
              ------------------+-------+----------------------------------------------\
              +---------+------+-------+------+------+------+------+------+------+--------\n\
              {}\
@@ -2398,6 +2399,7 @@ pub struct Sockets {
     pub rpc_sts_client: UdpSocket,
     pub vortexor_receivers: Option<Vec<UdpSocket>>,
     pub alpenglow: UdpSocket,
+    pub alpenglow_quic: UdpSocket,
 }
 
 pub struct NodeConfig {
